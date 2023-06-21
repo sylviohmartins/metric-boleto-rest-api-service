@@ -11,7 +11,7 @@ public enum StatusEnum {
     INCLUIDO(1),
     AUTORIZADO(2),
     EFETIVADO(3),
-    ALTERAD0(4),
+    ALTERADO(4),
     CANCELADO(5);
 
     private static final Map<Integer, StatusEnum> IDS = Stream.of(values()).collect(Collectors.toMap(StatusEnum::getId, v -> v));

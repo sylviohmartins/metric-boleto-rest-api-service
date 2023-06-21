@@ -6,7 +6,6 @@ import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
 import io.sylviohmartins.metric.constant.MessageConstants;
 import io.sylviohmartins.metric.exception.ServiceException;
-import io.sylviohmartins.metric.util.MetricUtils;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;
@@ -16,6 +15,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.List;
+
+import static io.sylviohmartins.metric.util.MetricUtils.format;
 
 
 /**
@@ -62,7 +63,7 @@ public class MetricService {
      * @throws ServiceException se ocorrer um erro ao registrar a métrica
      */
     private void register(final String objective, final String name, final String description, final String unit, final List<Tag> tags, final Double value) throws ServiceException {
-        final String metricName = MetricUtils.format(name, objective != null ? objective : "counter");
+        final String metricName = format(name, objective != null ? objective : "counter");
 
         try {
 
@@ -107,7 +108,7 @@ public class MetricService {
      * @throws ServiceException se ocorrer um erro ao registrar a métrica
      */
     private void register(final String objective, final String name, final String description, final List<Tag> tags, final StopWatch watch) throws ServiceException {
-        final String metricName = MetricUtils.format(name, objective);
+        final String metricName = format(name, objective);
 
         try {
 

@@ -1,8 +1,9 @@
 package io.sylviohmartins.metric.handler;
 
-import io.sylviohmartins.metric.domain.document.Metric;
-import io.sylviohmartins.metric.util.TagUtils;
 import io.micrometer.core.instrument.Tag;
+import io.sylviohmartins.metric.domain.document.Metric;
+import io.sylviohmartins.metric.exception.HandlerException;
+import io.sylviohmartins.metric.exception.ProccedUnknownException;
 import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.time.StopWatch;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -13,6 +14,10 @@ import org.springframework.stereotype.Component;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import static io.sylviohmartins.metric.util.TagUtils.*;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 
 
 /**
@@ -29,14 +34,16 @@ public class TimerMetricHandler extends BaseMetricHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(TimerMetricHandler.class);
 
     /**
-     * Processa a lógica de medição do tempo de execução e envia a métrica.
+     * Processa a execução do ponto de corte e registra as métricas do tipo tempo.
+     * Este método é executado antes e depois do ponto de corte para medir o tempo de execução e registrar as métricas correspondentes.
      *
-     * @param joinPoint O ponto de corte da execução a ser monitorado.
-     * @param metric    A métrica a ser atualizada com o tempo de execução.
+     * @param joinPoint O ponto de corte a ser executado.
+     * @param metric    A métrica associada à operação executada.
      * @return O resultado da execução do ponto de corte.
-     * @throws Throwable Uma exceção que ocorreu durante a execução do ponto de corte.
+     * @throws ProccedUnknownException Se ocorrer um erro durante a execução do ponto de corte.
+     * @throws HandlerException        Se ocorrer um erro ao lidar com as métricas.
      */
-    public Object process(final ProceedingJoinPoint joinPoint, final Metric metric) throws Throwable {
+    public Object process(final ProceedingJoinPoint joinPoint, final Metric metric) throws ProccedUnknownException, HandlerException {
         final StopWatch watchRuntime = new StopWatch();
         watchRuntime.start();
 
@@ -54,10 +61,10 @@ public class TimerMetricHandler extends BaseMetricHandler {
 
             return proceed;
 
-        } catch (final Exception unknownException) {
-            execute(unknownException, metric);
+        } catch (final Throwable proccedUnknownException) {
+            execute(proccedUnknownException, metric);
 
-            throw unknownException;
+            throw new ProccedUnknownException(proccedUnknownException.getMessage(), BAD_REQUEST);
 
         } finally {
             watchRuntime.stop();
@@ -67,25 +74,33 @@ public class TimerMetricHandler extends BaseMetricHandler {
     }
 
     /**
-     * Executa ações adicionais com base nas informações fornecidas.
+     * Executa o registro das métricas do tipo tempo.
+     * Este método é responsável por adicionar tags à métrica e enviá-la para registro.
      *
-     * @param unknownException Uma exceção desconhecida ocorrida durante a execução.
-     * @param genericMetric    A métrica genérica que será atualizada com tags adicionais.
+     * @param proccedUnknownException A exceção desconhecida que ocorreu durante a execução da operação, ou null se nenhuma exceção ocorreu.
+     * @param genericMetric           A métrica genérica associada à operação executada.
+     * @throws HandlerException Se ocorrer um erro ao lidar com as métricas.
      */
-    public void execute(final Exception unknownException, final Metric genericMetric) {
-        final List<Tag> executionTags = new LinkedList<>();
+    public void execute(final Throwable proccedUnknownException, final Metric genericMetric) throws HandlerException {
+        try {
+            final List<Tag> executionTags = new LinkedList<>();
 
-        if (unknownException == null) {
-            executionTags.add(TagUtils.createExecpetion(null));
-            executionTags.add(TagUtils.createSuccess());
+            if (proccedUnknownException == null) {
+                executionTags.add(createException(null));
+                executionTags.add(createSuccess());
 
-        } else {
-            executionTags.add(TagUtils.createExecpetion(unknownException));
-            executionTags.add(TagUtils.createFail());
+            } else {
+                executionTags.add(createException(proccedUnknownException));
+                executionTags.add(createFail());
+            }
+
+            genericMetric.getTags().addAll(executionTags);
+
+            sendTimer(genericMetric);
+
+        } catch (final Exception unknownException) {
+            throw new HandlerException(unknownException.getMessage(), INTERNAL_SERVER_ERROR);
         }
-
-        genericMetric.getTags().addAll(executionTags);
-
-        sendTimer(genericMetric);
     }
+
 }

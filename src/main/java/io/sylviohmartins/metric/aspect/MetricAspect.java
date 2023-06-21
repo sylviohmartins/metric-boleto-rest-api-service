@@ -1,10 +1,14 @@
-package io.sylviohmartins.metric.metric;
+package io.sylviohmartins.metric.aspect;
 
+import io.micrometer.core.instrument.Tag;
 import io.sylviohmartins.metric.domain.document.Metric;
+import io.sylviohmartins.metric.exception.HandlerException;
+import io.sylviohmartins.metric.exception.ProccedUnknownException;
 import io.sylviohmartins.metric.handler.CounterMetricHandler;
 import io.sylviohmartins.metric.handler.TimerMetricHandler;
+import io.sylviohmartins.metric.metric.Counter;
+import io.sylviohmartins.metric.metric.Timer;
 import io.sylviohmartins.metric.util.TagUtils;
-import io.micrometer.core.instrument.Tag;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -30,6 +34,8 @@ import java.util.List;
 public class MetricAspect {
     private static final Logger LOGGER = LoggerFactory.getLogger(MetricAspect.class);
 
+    private static final String ERROR_MESSAGE = "Erro desconhecido ao processar a métrica: {}";
+
     private final CounterMetricHandler counterMetricHandler;
 
     private final TimerMetricHandler timerMetricHandler;
@@ -40,11 +46,15 @@ public class MetricAspect {
      * @param joinPoint O ponto de junção em execução que representa o método interceptado.
      * @param counter   A anotação Counter aplicada ao método.
      * @return O resultado do método interceptado.
-     * @throws Throwable Se ocorrer uma exceção durante a interceptação.
+     * @throws ProccedUnknownException Se ocorrer uma exceção durante a interceptação.
      */
     @SuppressWarnings("unused")
     @Around("@annotation(counter)")
-    public Object counterAspect(final ProceedingJoinPoint joinPoint, final Counter counter) throws Throwable {
+    public Object counterAspect(final ProceedingJoinPoint joinPoint, final Counter counter) throws ProccedUnknownException {
+        if (!counter.isEnabled()) {
+            return handleDisabledMetric(counter.name());
+        }
+
         final List<Tag> tags = TagUtils.retrieveTags(joinPoint, counter.tags());
 
         final Metric metric = Metric.builder() //
@@ -55,7 +65,14 @@ public class MetricAspect {
                 .shouldGenerate(counter.shouldGenerate()) //
                 .build();
 
-        return counter.isEnabled() ? counterMetricHandler.process(joinPoint, metric) : handleDisabledMetric(counter.name());
+        try {
+            return counterMetricHandler.process(joinPoint, metric);
+
+        } catch (final HandlerException handlerException) {
+            LOGGER.error(ERROR_MESSAGE, metric, handlerException);
+
+            return null;
+        }
     }
 
     /**
@@ -64,11 +81,15 @@ public class MetricAspect {
      * @param joinPoint O ponto de junção em execução que representa o método interceptado.
      * @param timer     A anotação Timer aplicada ao método.
      * @return O resultado do método interceptado.
-     * @throws Throwable Se ocorrer uma exceção durante a interceptação.
+     * @throws ProccedUnknownException Se ocorrer uma exceção durante a interceptação.
      */
     @SuppressWarnings("unused")
     @Around("@annotation(timer)")
-    public Object timerAspect(final ProceedingJoinPoint joinPoint, final Timer timer) throws Throwable {
+    public Object timerAspect(final ProceedingJoinPoint joinPoint, final Timer timer) throws ProccedUnknownException {
+        if (!timer.isEnabled()) {
+            return handleDisabledMetric(timer.name());
+        }
+
         final List<Tag> tags = TagUtils.retrieveTags(joinPoint, timer.tags());
 
         final Metric metric = Metric.builder() //
@@ -77,8 +98,14 @@ public class MetricAspect {
                 .tags(tags) //
                 .build();
 
+        try {
+            return timerMetricHandler.process(joinPoint, metric);
 
-        return timer.isEnabled() ? timerMetricHandler.process(joinPoint, metric) : handleDisabledMetric(timer.name());
+        } catch (final HandlerException handlerException) {
+            LOGGER.error(ERROR_MESSAGE, metric, handlerException);
+
+            return null;
+        }
     }
 
     /**

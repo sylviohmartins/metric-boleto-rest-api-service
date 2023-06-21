@@ -1,13 +1,14 @@
 package io.sylviohmartins.metric.handler;
 
+import io.micrometer.core.instrument.Tag;
+import io.sylviohmartins.metric.constant.CustomMetricsConstants;
 import io.sylviohmartins.metric.domain.document.Boleto;
 import io.sylviohmartins.metric.domain.document.CustomMetric;
 import io.sylviohmartins.metric.domain.document.Metric;
 import io.sylviohmartins.metric.domain.enumeration.ChannelSourceEnum;
 import io.sylviohmartins.metric.domain.enumeration.MethodEnum;
 import io.sylviohmartins.metric.domain.enumeration.StatusEnum;
-import io.micrometer.core.instrument.Tag;
-import io.sylviohmartins.metric.constant.CustomMetricsConstants;
+import io.sylviohmartins.metric.exception.HandlerException;
 import io.sylviohmartins.metric.util.TagUtils;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -19,8 +20,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static io.sylviohmartins.metric.constant.ObjectiveMetricConstants.CONTAR;
+import static io.sylviohmartins.metric.constant.ObjectiveMetricConstants.SOMAR;
 import static io.sylviohmartins.metric.util.MetricUtils.createCustomMetric;
-import static io.sylviohmartins.metric.util.MetricUtils.format;
+import static io.sylviohmartins.metric.util.TagUtils.addAllTags;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 
 
 /**
@@ -40,8 +44,9 @@ public class CounterCustomMetricHandler extends BaseMetricHandler {
      *
      * @param args   Os argumentos a serem processados.
      * @param metric A métrica a ser manipulada.
+     * @throws HandlerException Se ocorrer um erro ao manipular as métricas.
      */
-    public void process(final Object[] args, final Metric metric) {
+    public void process(final Object[] args, final Metric metric) throws HandlerException {
         for (final Object arg : args) {
 
             if (arg instanceof Boleto boleto) {
@@ -59,8 +64,27 @@ public class CounterCustomMetricHandler extends BaseMetricHandler {
      * Executa a manipulação da métrica personalizada.
      *
      * @param metric A métrica a ser manipulada.
+     * @throws HandlerException Se ocorrer um erro ao manipular as métricas.
      */
-    private void execute(final Metric metric) {
+    private void execute(final Metric metric) throws HandlerException {
+        try {
+            metric.getTags().addAll(createCustomTags(metric));
+
+            sendCustomSumMetric(metric);
+            sendCustomCounterMetric(metric);
+
+        } catch (final Exception unknownException) {
+            throw new HandlerException(unknownException.getMessage(), INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Cria as tags personalizadas da métrica.
+     *
+     * @param metric A métrica a ser manipulada.
+     * @return A lista de tags personalizadas.
+     */
+    private List<Tag> createCustomTags(final Metric metric) {
         final CustomMetric customMetric = metric.getCustomMetric();
 
         final StatusEnum status = customMetric.getStatus();
@@ -70,8 +94,6 @@ public class CounterCustomMetricHandler extends BaseMetricHandler {
         final Double paymentAmount = customMetric.getPaymentAmount();
         final Double maximumPaymentAmount = customMetric.getMaximumPaymentAmount();
 
-        sendCustomSumMetric(metric);
-
         final List<Tag> customMetricTags = new LinkedList<>();
 
         final String paymentTypeValue = isPaymentIntegral(paymentAmount, maximumPaymentAmount) ? CustomMetricsConstants.INTEGRAL : CustomMetricsConstants.PARCIAL;
@@ -80,13 +102,7 @@ public class CounterCustomMetricHandler extends BaseMetricHandler {
         final String dateValue = isPaymentToday(date) ? CustomMetricsConstants.DIA : CustomMetricsConstants.AGENDADA;
         final Boolean contingencyValue = metric.getTags() != null;
 
-        // Mapeamento dos tipos de status para os tipos correspondentes
-        final Map<StatusEnum, String> statusTypeMap = new HashMap<>();
-        statusTypeMap.put(StatusEnum.INCLUIDO, null);
-        statusTypeMap.put(StatusEnum.AUTORIZADO, null);
-        statusTypeMap.put(StatusEnum.EFETIVADO, metric.getTags() != null ? "e" : "");
-        statusTypeMap.put(StatusEnum.ALTERAD0, metric.getTags() != null ? "a" : "");
-        statusTypeMap.put(StatusEnum.CANCELADO, metric.getTags() != null ? "c" : "");
+        final Map<StatusEnum, String> statusTypeMap = createStatusTypeMap(metric);
 
         // Verifica se o status é válido
         if (!statusTypeMap.containsKey(status)) {
@@ -97,7 +113,7 @@ public class CounterCustomMetricHandler extends BaseMetricHandler {
         final String typeValue = statusTypeMap.get(status);
 
         // Adiciona as tags comuns a todos os casos
-        TagUtils.addAllTags(
+        addAllTags(
                 customMetricTags,
                 TagUtils.createTag("tipo", typeValue),
                 TagUtils.createTag("canal", channelSourceValue),
@@ -107,10 +123,27 @@ public class CounterCustomMetricHandler extends BaseMetricHandler {
                 TagUtils.createTag("contingencia", String.valueOf(contingencyValue))
         );
 
-        metric.getTags().addAll(customMetricTags);
-
-        sendCustomCounterMetric(metric);
+        return customMetricTags;
     }
+
+    /**
+     * Cria um mapa de tipos de status com base nos valores da métrica fornecida.
+     *
+     * @param metric A métrica usada para determinar os valores dos tipos de status.
+     * @return Um mapa contendo os tipos de status e seus valores correspondentes.
+     */
+    public Map<StatusEnum, String> createStatusTypeMap(Metric metric) {
+        Map<StatusEnum, String> statusTypeMap = new HashMap<>();
+
+        statusTypeMap.put(StatusEnum.INCLUIDO, null);
+        statusTypeMap.put(StatusEnum.AUTORIZADO, null);
+        //statusTypeMap.put(StatusEnum.EFETIVADO, metric.getTags() != null ? "e" : "");
+        //statusTypeMap.put(StatusEnum.ALTERADO, metric.getName() != null ? "a" : "");
+        //statusTypeMap.put(StatusEnum.CANCELADO, metric.getObjective() != null ? "c" : "");
+
+        return statusTypeMap;
+    }
+
 
     /**
      * Envia uma métrica personalizada de soma.
@@ -121,22 +154,22 @@ public class CounterCustomMetricHandler extends BaseMetricHandler {
         final CustomMetric customMetric = metric.getCustomMetric();
 
         metric.setValue(customMetric.getPaymentAmount());
-        metric.setObjective(format("custom", "sum"));
+        metric.setObjective(SOMAR);
+
         sendCounter(metric);
     }
 
     /**
-     * Envia uma métrica personalizada de contagem.
+     * Envia uma métrica personalizada de soma.
      *
      * @param metric A métrica a ser enviada.
      */
     private void sendCustomCounterMetric(final Metric metric) {
         metric.setValue(1.0);
-        metric.setObjective(format("custom", "counter"));
+        metric.setObjective(CONTAR);
+
         sendCounter(metric);
     }
-
-    // Métodos auxiliares
 
     /**
      * Obtém a data atual.

@@ -5,8 +5,6 @@ import io.sylviohmartins.metric.domain.document.CustomMetric;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 /**
  * <h1>MetricUtils</h1>
  * <p>Esta classe fornece utilitários para manipulação de métricas.</p>
@@ -24,6 +22,10 @@ public final class MetricUtils {
      * @return O nome formatado.
      */
     public static String format(final String... args) {
+        if (args == null) {
+            return "";
+        }
+
         final StringBuilder complementaryName = new StringBuilder(0);
 
         for (final String arg : args) {
@@ -32,40 +34,13 @@ public final class MetricUtils {
             }
         }
 
-        final int length = complementaryName.length();
-        complementaryName.replace(length - 1, length, "");
+        int length = complementaryName.length();
 
-        return complementaryName.toString();
-    }
-
-    /**
-     * Adiciona nomes a uma lista de métricas, usando um prefixo e uma lista de nomes adicionais.
-     *
-     * @param metricNames A lista de métricas onde os nomes serão adicionados.
-     * @param prefix      O prefixo a ser adicionado a cada nome.
-     * @param names       Os nomes a serem adicionados.
-     */
-    public static void addNames(final List<String> metricNames, final String prefix, final String... names) {
-        final StringBuilder metricNameBuilder = new StringBuilder(prefix + ".");
-
-        for (final String name : names) {
-
-            if (name == null) {
-                break;
-            }
-
-            metricNameBuilder.append(name);
-
-            metricNames.add(metricNameBuilder.toString());
-
-            boolean isLastElement = name.equals(names[names.length - 1]);
-
-            if (!isLastElement) {
-                metricNameBuilder.append(".");
-            }
-
+        if (length > 0) {
+            complementaryName.deleteCharAt(length - 1);
         }
 
+        return complementaryName.toString();
     }
 
     /**

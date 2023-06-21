@@ -8,6 +8,9 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
+
+import static io.sylviohmartins.metric.util.MetricUtils.format;
 
 /**
  * <h1>TagUtils</h1>
@@ -27,7 +30,7 @@ public final class TagUtils {
      * @return A tag criada.
      */
     public static Tag createTag(final String key, final String value) {
-        return Tag.of(key, value != null ? value : "");
+        return Tag.of(key != null ? key : "", value != null ? value : "");
     }
 
     /**
@@ -40,7 +43,7 @@ public final class TagUtils {
         final String className = joinPoint.getTarget().getClass().getSimpleName();
         final String methodName = joinPoint.getSignature().getName();
 
-        return createTag("methodName", MetricUtils.format(className, methodName));
+        return createTag("methodName", format(className, methodName));
     }
 
     /**
@@ -58,7 +61,7 @@ public final class TagUtils {
      * @param unknownException A exceção desconhecida.
      * @return A tag de exceção.
      */
-    public static Tag createExecpetion(final Exception unknownException) {
+    public static Tag createException(final Throwable unknownException) {
         final String value = unknownException != null ? unknownException.getClass().getName() : "";
 
         return createTag("exception", value);
@@ -74,20 +77,22 @@ public final class TagUtils {
     }
 
     /**
-     * Recupera as tags com base nos valores fornecidos.
+     * Recupera as arrayTags com base nos valores fornecidos.
      *
      * @param joinPoint O ponto de corte da execução do método.
-     * @param arrayTags As tags fornecidas.
-     * @return A lista de tags.
+     * @param arrayTags As arrayTags fornecidas.
+     * @return A lista de arrayTags.
      */
     public static List<Tag> retrieveTags(final ProceedingJoinPoint joinPoint, final io.sylviohmartins.metric.metric.nested.Tag[] arrayTags) {
-        final List<Tag> tags = new LinkedList<>();
-
-        for (io.sylviohmartins.metric.metric.nested.Tag tag : arrayTags) {
-            tags.add(TagUtils.createTag(tag.name(), tag.value()));
+        if (arrayTags == null) {
+            return new LinkedList<>();
         }
 
-        tags.add(TagUtils.createDefault(joinPoint));
+        final List<Tag> tags = Arrays.stream(arrayTags)
+                .map(tag -> createTag(tag.name(), tag.value()))
+                .collect(Collectors.toList());
+
+        tags.add(createDefault(joinPoint));
 
         return tags;
     }

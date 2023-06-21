@@ -1,0 +1,295 @@
+{
+	"info": {
+		"_postman_id": "f4265f49-dc5b-40aa-886e-9746f91c6079",
+		"name": "Arquitetura DEMO",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "4526807",
+		"_collection_link": "https://nicobelle-io.postman.co/workspace/NicoBelle.io~f0ec0134-9bae-46e5-8d6b-def11582bddd/collection/4526807-f4265f49-dc5b-40aa-886e-9746f91c6079?action=share&creator=4526807&source=collection_link"
+	},
+	"item": [
+		{
+			"name": "Metric Boleto REST API Service",
+			"item": [
+				{
+					"name": "Boletos",
+					"item": [
+						{
+							"name": "Inclui um novo pagamento de boleto",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"id\": \"3f1eeb33-8624-41f0-a1c8-0132ae813596\",\n    \"date\": \"2023-06-10\",\n    \"channel_source\": \"BANKLINE\",\n    \"method\": \"OUTROS_BANCOS\",\n    \"payment_amount\": 38.52,\n    \"maximum_payment_amount\": 100.00\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{api_url}}/v1/boletos",
+									"host": [
+										"{{api_url}}"
+									],
+									"path": [
+										"v1",
+										"boletos"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "Todos os campos preenchidos",
+									"originalRequest": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"cpf\": \"33975077077\",\n    \"nome\": \"Flávio Silveira da Cunha\",\n    \"enderecos\": [\n        {\n            \"cep\": \"03186-020\",\n            \"logradouro\": \"Rua Ibitinga\",\n            \"complemento\": \"\",\n            \"bairro\": \"Vila Bertioga\",\n            \"localidade\": \"São Paulo\",\n            \"uf\": \"SP\",\n            \"ibge\": \"3550308\"\n        }\n    ]\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{api_url}}/v1/pessoas",
+											"host": [
+												"{{api_url}}"
+											],
+											"path": [
+												"v1",
+												"pessoas"
+											]
+										}
+									},
+									"status": "Created",
+									"code": 201,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "X-Content-Type-Options",
+											"value": "nosniff"
+										},
+										{
+											"key": "X-XSS-Protection",
+											"value": "0"
+										},
+										{
+											"key": "Cache-Control",
+											"value": "no-cache, no-store, max-age=0, must-revalidate"
+										},
+										{
+											"key": "Pragma",
+											"value": "no-cache"
+										},
+										{
+											"key": "Expires",
+											"value": "0"
+										},
+										{
+											"key": "X-Frame-Options",
+											"value": "DENY"
+										},
+										{
+											"key": "Content-Type",
+											"value": "application/json"
+										},
+										{
+											"key": "Transfer-Encoding",
+											"value": "chunked"
+										},
+										{
+											"key": "Date",
+											"value": "Tue, 04 Apr 2023 03:56:39 GMT"
+										},
+										{
+											"key": "Keep-Alive",
+											"value": "timeout=60"
+										},
+										{
+											"key": "Connection",
+											"value": "keep-alive"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"id\": 6,\n    \"cpf\": \"33975077077\",\n    \"nome\": \"Flávio Silveira da Cunha\",\n    \"versao\": 0,\n    \"status\": \"ATIVO\",\n    \"enderecos\": [\n        {\n            \"cep\": \"03186020\",\n            \"logradouro\": \"Rua Ibitinga\",\n            \"complemento\": \"\",\n            \"bairro\": \"Vila Bertioga\",\n            \"localidade\": \"São Paulo\",\n            \"uf\": \"SP\",\n            \"ibge\": 3550308,\n            \"data_inclusao\": \"2023-04-04T00:56:39.527371289\",\n            \"data_atualizacao\": \"2023-04-04T00:56:39.527332613\"\n        }\n    ],\n    \"data_criacao\": \"2023-04-04T00:56:39.5161597\",\n    \"data_atualizacao\": \"2023-04-04T00:56:39.516116137\"\n}"
+								}
+							]
+						},
+						{
+							"name": "Autoriza o pagamento de um boleto existente",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{api_url}}/v1/boletos/3f1eeb33-8624-41f0-a1c8-0132ae813596",
+									"host": [
+										"{{api_url}}"
+									],
+									"path": [
+										"v1",
+										"boletos",
+										"3f1eeb33-8624-41f0-a1c8-0132ae813596"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "Todos os campos preenchidos",
+									"originalRequest": {
+										"method": "PUT",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"cpf\": \"33975077077\",\n    \"nome\": \"Flávio Silveira da Cunha (alterado)\",\n    \"versao\": 0,\n    \"enderecos\": [\n        {\n            \"cep\": \"01443900\",\n            \"logradouro\": \"Rua Capitão Antônio Rosa\",\n            \"complemento\": \"376\",\n            \"bairro\": \"Jardim Paulistano\",\n            \"localidade\": \"São Paulo\",\n            \"uf\": \"SP\",\n            \"ibge\": \"3550308\"\n        }\n    ]\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{api_url}}/v1/pessoas/6",
+											"host": [
+												"{{api_url}}"
+											],
+											"path": [
+												"v1",
+												"pessoas",
+												"6"
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "X-Content-Type-Options",
+											"value": "nosniff"
+										},
+										{
+											"key": "X-XSS-Protection",
+											"value": "0"
+										},
+										{
+											"key": "Cache-Control",
+											"value": "no-cache, no-store, max-age=0, must-revalidate"
+										},
+										{
+											"key": "Pragma",
+											"value": "no-cache"
+										},
+										{
+											"key": "Expires",
+											"value": "0"
+										},
+										{
+											"key": "X-Frame-Options",
+											"value": "DENY"
+										},
+										{
+											"key": "Content-Type",
+											"value": "application/json"
+										},
+										{
+											"key": "Transfer-Encoding",
+											"value": "chunked"
+										},
+										{
+											"key": "Date",
+											"value": "Tue, 04 Apr 2023 04:02:57 GMT"
+										},
+										{
+											"key": "Keep-Alive",
+											"value": "timeout=60"
+										},
+										{
+											"key": "Connection",
+											"value": "keep-alive"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"id\": 6,\n    \"cpf\": \"33975077077\",\n    \"nome\": \"Flávio Silveira da Cunha (alterado)\",\n    \"versao\": 1,\n    \"status\": \"ATIVO\",\n    \"enderecos\": [\n        {\n            \"cep\": \"03186020\",\n            \"logradouro\": \"Rua Ibitinga\",\n            \"complemento\": \"\",\n            \"bairro\": \"Vila Bertioga\",\n            \"localidade\": \"São Paulo\",\n            \"uf\": \"SP\",\n            \"ibge\": 3550308,\n            \"data_inclusao\": \"2023-04-04T00:56:39.527371\",\n            \"data_atualizacao\": \"2023-04-04T00:56:39.527333\"\n        }\n    ],\n    \"data_criacao\": \"2023-04-04T00:56:39.51616\",\n    \"data_atualizacao\": \"2023-04-04T01:02:57.34861428\"\n}"
+								}
+							]
+						}
+					]
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "sso_url",
+			"value": "http://localhost:8080"
+		},
+		{
+			"key": "client_id",
+			"value": "starter-java-rest-api-service"
+		},
+		{
+			"key": "username",
+			"value": "admin"
+		},
+		{
+			"key": "password",
+			"value": "adminPass"
+		},
+		{
+			"key": "api_url",
+			"value": "http://localhost:3002"
+		}
+	]
+}

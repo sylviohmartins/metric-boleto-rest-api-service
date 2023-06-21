@@ -1,8 +1,9 @@
 package io.sylviohmartins.metric.handler;
 
-import io.sylviohmartins.metric.domain.document.Metric;
-import io.sylviohmartins.metric.util.TagUtils;
 import io.micrometer.core.instrument.Tag;
+import io.sylviohmartins.metric.domain.document.Metric;
+import io.sylviohmartins.metric.exception.HandlerException;
+import io.sylviohmartins.metric.exception.ProccedUnknownException;
 import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.time.StopWatch;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -13,6 +14,12 @@ import org.springframework.stereotype.Component;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import static io.sylviohmartins.metric.constant.ObjectiveMetricConstants.CONTAR;
+import static io.sylviohmartins.metric.util.MetricUtils.format;
+import static io.sylviohmartins.metric.util.TagUtils.*;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 
 
 /**
@@ -38,9 +45,10 @@ public class CounterMetricHandler extends BaseMetricHandler {
      * @param joinPoint O ponto de corte a ser executado.
      * @param metric    A métrica associada à operação executada.
      * @return O resultado da execução do ponto de corte.
-     * @throws Throwable Se ocorrer um erro durante a execução do ponto de corte.
+     * @throws ProccedUnknownException Se ocorrer um erro durante a execução do ponto de corte.
+     * @throws HandlerException        Se ocorrer um erro ao lidar com as métricas.
      */
-    public Object process(final ProceedingJoinPoint joinPoint, final Metric metric) throws Throwable {
+    public Object process(final ProceedingJoinPoint joinPoint, final Metric metric) throws ProccedUnknownException, HandlerException {
         final StopWatch watchRuntime = new StopWatch();
         watchRuntime.start();
 
@@ -51,10 +59,10 @@ public class CounterMetricHandler extends BaseMetricHandler {
 
             return proceed;
 
-        } catch (final Exception unknownException) {
-            execute(unknownException, metric, joinPoint.getArgs());
+        } catch (final Throwable proccedUnknownException) {
+            execute(proccedUnknownException, metric, joinPoint.getArgs());
 
-            throw unknownException;
+            throw new ProccedUnknownException(proccedUnknownException.getMessage(), BAD_REQUEST);
 
         } finally {
             watchRuntime.stop();
@@ -65,30 +73,42 @@ public class CounterMetricHandler extends BaseMetricHandler {
 
     /**
      * Executa o registro das métricas do tipo contador.
-     * Este método é responsável por adicionar tags às métricas, enviá-las para registro e processar métricas personalizadas adicionais, se necessário.
+     * Este método é responsável por adicionar tags à métrica, enviá-la para registro e processar métricas personalizadas adicionais, se necessário.
      *
-     * @param unknownException A exceção desconhecida que ocorreu durante a execução da operação, ou null se nenhuma exceção ocorreu.
-     * @param genericMetric    A métrica genérica associada à operação executada.
-     * @param args             Os argumentos do ponto de corte.
+     * @param proccedUnknownException A exceção desconhecida que ocorreu durante a execução da operação, ou null se nenhuma exceção ocorreu.
+     * @param genericMetric           A métrica genérica associada à operação executada.
+     * @param args                    Os argumentos do ponto de corte.
+     * @throws HandlerException Se ocorrer um erro ao lidar com as métricas.
      */
-    public void execute(final Exception unknownException, final Metric genericMetric, final Object[] args) {
-        final List<Tag> executionTags = new LinkedList<>();
+    public void execute(final Throwable proccedUnknownException, final Metric genericMetric, final Object[] args) throws HandlerException {
+        try {
+            final List<Tag> executionTags = new LinkedList<>();
 
-        if (unknownException == null) {
-            executionTags.add(TagUtils.createExecpetion(null));
-            executionTags.add(TagUtils.createSuccess());
+            if (proccedUnknownException == null) {
+                executionTags.add(createException(null));
+                executionTags.add(createSuccess());
 
-        } else {
-            executionTags.add(TagUtils.createExecpetion(unknownException));
-            executionTags.add(TagUtils.createFail());
-        }
+            } else {
+                executionTags.add(createException(proccedUnknownException));
+                executionTags.add(createFail());
+            }
 
-        genericMetric.getTags().addAll(executionTags);
+            genericMetric.getTags().addAll(executionTags);
+            genericMetric.setObjective(CONTAR);
 
-        sendCounter(genericMetric);
+            sendCounter(genericMetric);
 
-        if (genericMetric.isShouldGenerate()) {
-            counterCustomMetricHandler.process(args, genericMetric);
+            if (genericMetric.isShouldGenerate()) {
+                final String customMetricName = format(genericMetric.getName(), "custom");
+
+                genericMetric.setName(customMetricName);
+                genericMetric.setObjective(CONTAR);
+
+                counterCustomMetricHandler.process(args, genericMetric);
+            }
+
+        } catch (final Exception unknownException) {
+            throw new HandlerException(unknownException.getMessage(), INTERNAL_SERVER_ERROR);
         }
     }
 
