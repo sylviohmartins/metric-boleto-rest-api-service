@@ -59,6 +59,9 @@ public class CounterMetricHandler extends BaseMetricHandler {
 
             return proceed;
 
+        } catch (final HandlerException handlerException) {
+            throw handlerException;
+
         } catch (final Throwable proccedUnknownException) {
             execute(proccedUnknownException, metric, joinPoint.getArgs());
 

@@ -61,6 +61,9 @@ public class TimerMetricHandler extends BaseMetricHandler {
 
             return proceed;
 
+        } catch (final HandlerException handlerException) {
+            throw handlerException;
+
         } catch (final Throwable proccedUnknownException) {
             execute(proccedUnknownException, metric);
 

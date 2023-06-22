@@ -1,0 +1,11 @@
+apiVersion: 1
+providers:
+  - name: application
+    orgId: 1
+    folder: 'Application'
+    type: file
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/application
+      foldersFromFilesStructure: false
