@@ -35,6 +35,12 @@
         <!--=============================================================================================================
         DEPENDÊNCIAS USADAS NA APLICAÇÃO
         ==============================================================================================================-->
+        <!-- Apache Kafka-->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+            <!--version>3.0.0</version-->
+        </dependency>
         <!-- Commons -->
         <dependency>
             <groupId>commons-io</groupId>
@@ -156,6 +162,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <mainClass>io.sylviohmartins.metric.MetricApplication</mainClass>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
